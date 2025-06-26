@@ -1,5 +1,6 @@
 from pygame import *
-
+import random 
+import math
 # Константы экрана
 SCREEN_WIDTH = 512
 SCREEN_HEIGHT = 512
@@ -175,27 +176,141 @@ class Hero:
         # Отрисовка спрайта
         screen.blit(current_image, (self.x, self.y))
 
+"""
+Основная функция приложения
+Содержит игровой цикл и обработку событий
+"""
+# Инициализация окна
+screen = display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+display.set_caption("Анимированный герой")
+
+# Инициализация таймера
+clock = time.Clock()
+
+# Создание экземпляра персонажа
+try:
+    hero = Hero(SCREEN_WIDTH // 2 - 32, SCREEN_HEIGHT - 32)
+except error:
+    print("Ошибка: файл 'characters.png' не найден!")
+    print("Поместите файл спрайт-листа в директорию с программой")
+    
+
+
+particles = []
+source = {
+    'x': SCREEN_WIDTH - 128,      # X-координата центра
+    'y': 128,      # Y-координата центра
+    'timer': 0,    # Таймер для анимации пульсации
+    'radius': 30   # Базовый радиус круга
+}
+
+def create_particles(count=5):
+    """
+    Создает новые частицы, исходящие из центра источника
+    Args:
+        count: int - количество создаваемых частиц (по умолчанию 5)
+    Возвращает:
+        None (но модифицирует глобальный список particles)
+    """
+    for _ in range(count):
+        angle = random.uniform(0, 2 * math.pi)  # Случайный угол вылета
+        speed = random.uniform(2, 6)           # Случайная скорость
+        
+        # Создаем словарь с параметрами частицы
+        particle = {
+            'x': source['x'],                  # Начальная позиция X
+            'y': source['y'],                  # Начальная позиция Y
+            'speed_x': math.cos(angle) * speed, # Горизонтальная скорость
+            'speed_y': math.sin(angle) * speed, # Вертикальная скорость
+            'life': random.randint(40, 100),   # Время жизни (в кадрах)
+            'color': [                         # Цвет (RGB)
+                random.randint(200, 255),      # Красный (желто-оранжевый)
+                random.randint(100, 200),      # Зеленый
+                random.randint(0, 50)          # Синий (почти отсутствует)
+            ],
+            'size': random.randint(3, 8)       # Начальный размер
+        }
+        particles.append(particle)
+
+def update_particles():
+    """
+    Обновляет состояние всех частиц (движение, жизнь, размер)
+    Args:
+        None
+    Возвращает:
+        None (но модифицирует глобальный список particles)
+    """
+    global particles
+    for particle in particles[:]:  # Работаем с копией списка для безопасного удаления
+        # Физика движения
+        particle['x'] += particle['speed_x']
+        particle['y'] += particle['speed_y']
+        
+        # Замедление частиц (эффект трения)
+        particle['speed_x'] *= 0.98
+        particle['speed_y'] *= 0.98
+        
+        # Гравитация (притяжение вниз)
+        particle['speed_y'] += 0.1
+        
+        # Уменьшение времени жизни
+        particle['life'] -= 1
+        
+        # Уменьшение размера с течением времени
+        particle['size'] = max(1, particle['size'] * 0.97)
+        
+        # Удаление частиц, когда их жизнь закончилась или размер слишком мал
+        if particle['life'] <= 0 or particle['size'] < 0.5:
+            particles.remove(particle)
+
+def draw_particles():
+    """
+    Отрисовывает все активные частицы на экране
+    Args:
+        None
+    Возвращает:
+        None (рисует на глобальной поверхности screen)
+    """
+    for particle in particles:
+        draw.circle(
+            screen,                      # Поверхность для рисования
+            particle['color'],           # Цвет частицы
+            (int(particle['x']), int(particle['y'])),  # Позиция
+            int(particle['size'])        # Размер
+        )
+
+def draw_source():
+    """
+    Рисует центральный источник частиц (пульсирующий желтый круг)
+    Args:
+        None
+    Возвращает:
+        None (рисует на глобальной поверхности screen)
+    """
+    # Анимация пульсации
+    source['timer'] += 0.05
+    pulse = math.sin(source['timer']) * 0.2 + 1  # Пульсация от 0.8 до 1.2
+    current_radius = int(source['radius'] * pulse)
+    
+    # Рисуем ядро источника
+    draw.circle(
+        screen,
+        (255, 255, 0),                  # Ярко-желтый цвет
+        (source['x'], source['y']),     # Позиция
+        current_radius                  # Текущий радиус с учетом пульсации
+    )
+    
+    # Создаем эффект свечения с прозрачностью
+    glow = Surface((current_radius*4, current_radius*4), SRCALPHA)
+    draw.circle(
+        glow,
+        (255, 200, 0, 50),             # Желтый с прозрачностью
+        (current_radius*2, current_radius*2),  # Центр поверхности
+        current_radius*2               # Радиус свечения
+    )
+    screen.blit(glow, (source['x'] - current_radius*2, source['y'] - current_radius*2))
 
 def main():
-    """
-    Основная функция приложения
-    Содержит игровой цикл и обработку событий
-    """
-    # Инициализация окна
-    screen = display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    display.set_caption("Анимированный герой")
-    
-    # Инициализация таймера
-    clock = time.Clock()
-    
-    # Создание экземпляра персонажа
-    try:
-        hero = Hero(SCREEN_WIDTH // 2 - 32, SCREEN_HEIGHT - 32)
-    except error:
-        print("Ошибка: файл 'hero_spritesheet.png' не найден!")
-        print("Поместите файл спрайт-листа в директорию с программой")
-        return
-    
     # Основной игровой цикл
     game_running = True
     while game_running:
@@ -242,8 +357,17 @@ def main():
         # Обновление состояния персонажа
         hero.update()
         
+        # Обновление состояния игры
+        source['timer'] += 0.1             # Увеличиваем таймер анимации
+        create_particles()                 # Создаем новые частицы
+        update_particles()                 # Обновляем существующие частицы
+
+        screen.fill((86, 193, 168))
+
+        draw_particles()                   # Рисуем все частицы
+        draw_source()                      # Рисуем источник
         # Отрисовка сцены
-        screen.fill((30, 30, 60))  # Очистка экрана
+
         
         hero.draw(screen)
         
