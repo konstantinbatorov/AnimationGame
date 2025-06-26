@@ -1,5 +1,5 @@
 # Анимирванный платформер
-![MarineGEO circle logo](Game.jpg "MarineGEO logo")
+![MarineGEO circle logo](game.jpg "MarineGEO logo")
 
 **Это простая 2D игра-платформер, где вы управляете королем, который пытается достичь своей башни**
 
